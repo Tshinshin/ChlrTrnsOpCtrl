@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.8.12009.203 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "ChlrTrnsOpCtrl", "DiffPressEmulator\ChlrTrnsOpCtrl.vbproj", "{6D7F905B-3627-47B8-9A41-3D2902306248}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "ChlrTrnsOpCtrl_Installer", "ChlrTrnsOpCtrl_Installer\ChlrTrnsOpCtrl_Installer.vdproj", "{71EE8E41-395D-44C2-9DF4-589A0755F516}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6D7F905B-3627-47B8-9A41-3D2902306248}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D7F905B-3627-47B8-9A41-3D2902306248}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D7F905B-3627-47B8-9A41-3D2902306248}.Debug|x64.ActiveCfg = Debug|x64
+		{6D7F905B-3627-47B8-9A41-3D2902306248}.Debug|x64.Build.0 = Debug|x64
+		{6D7F905B-3627-47B8-9A41-3D2902306248}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D7F905B-3627-47B8-9A41-3D2902306248}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D7F905B-3627-47B8-9A41-3D2902306248}.Release|x64.ActiveCfg = Release|x64
+		{6D7F905B-3627-47B8-9A41-3D2902306248}.Release|x64.Build.0 = Release|x64
+		{71EE8E41-395D-44C2-9DF4-589A0755F516}.Debug|Any CPU.ActiveCfg = Debug
+		{71EE8E41-395D-44C2-9DF4-589A0755F516}.Debug|x64.ActiveCfg = Debug
+		{71EE8E41-395D-44C2-9DF4-589A0755F516}.Debug|x64.Build.0 = Debug
+		{71EE8E41-395D-44C2-9DF4-589A0755F516}.Release|Any CPU.ActiveCfg = Release
+		{71EE8E41-395D-44C2-9DF4-589A0755F516}.Release|x64.ActiveCfg = Release
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D630DC25-172A-4666-BBF8-B8412E3D44AF}
+	EndGlobalSection
+EndGlobal
