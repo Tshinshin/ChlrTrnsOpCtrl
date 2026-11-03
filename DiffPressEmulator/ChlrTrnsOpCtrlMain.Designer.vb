@@ -93,6 +93,12 @@ Partial Class ChlrTrnsOpCtrlMain
         Me.Label39 = New System.Windows.Forms.Label()
         Me.Label40 = New System.Windows.Forms.Label()
         Me.Label41 = New System.Windows.Forms.Label()
+        Me.Label42 = New System.Windows.Forms.Label()
+        Me.Label43 = New System.Windows.Forms.Label()
+        Me.TextBoxTR1FL = New System.Windows.Forms.TextBox()
+        Me.Label44 = New System.Windows.Forms.Label()
+        Me.Label45 = New System.Windows.Forms.Label()
+        Me.TextBoxTR2FL = New System.Windows.Forms.TextBox()
         CType(Me.AxIPLink1, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.NumericUpDownTimerInterval, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
@@ -125,7 +131,7 @@ Partial Class ChlrTrnsOpCtrlMain
         Me.NumericUpDownTimerInterval.Name = "NumericUpDownTimerInterval"
         Me.NumericUpDownTimerInterval.Size = New System.Drawing.Size(120, 19)
         Me.NumericUpDownTimerInterval.TabIndex = 3
-        Me.NumericUpDownTimerInterval.Value = New Decimal(New Integer() {20, 0, 0, 0})
+        Me.NumericUpDownTimerInterval.Value = New Decimal(New Integer() {10, 0, 0, 0})
         '
         'Label1
         '
@@ -150,7 +156,7 @@ Partial Class ChlrTrnsOpCtrlMain
         'TimerTrigger
         '
         Me.TimerTrigger.Enabled = True
-        Me.TimerTrigger.Interval = 1000
+        Me.TimerTrigger.Interval = 10000
         '
         'Label3
         '
@@ -200,7 +206,7 @@ Partial Class ChlrTrnsOpCtrlMain
         Me.Label22.Name = "Label22"
         Me.Label22.Size = New System.Drawing.Size(38, 12)
         Me.Label22.TabIndex = 38
-        Me.Label22.Text = "x10 %"
+        Me.Label22.Text = "/10 %"
         '
         'Label23
         '
@@ -210,7 +216,7 @@ Partial Class ChlrTrnsOpCtrlMain
         Me.Label23.Name = "Label23"
         Me.Label23.Size = New System.Drawing.Size(38, 12)
         Me.Label23.TabIndex = 40
-        Me.Label23.Text = "x10 %"
+        Me.Label23.Text = "/10 %"
         '
         'TextBoxAR1FLsp
         '
@@ -532,7 +538,7 @@ Partial Class ChlrTrnsOpCtrlMain
         Me.Label29.Name = "Label29"
         Me.Label29.Size = New System.Drawing.Size(38, 12)
         Me.Label29.TabIndex = 78
-        Me.Label29.Text = "x10 %"
+        Me.Label29.Text = "/10 %"
         '
         'Label30
         '
@@ -542,7 +548,7 @@ Partial Class ChlrTrnsOpCtrlMain
         Me.Label30.Name = "Label30"
         Me.Label30.Size = New System.Drawing.Size(38, 12)
         Me.Label30.TabIndex = 79
-        Me.Label30.Text = "x10 %"
+        Me.Label30.Text = "/10 %"
         '
         'Label31
         '
@@ -552,7 +558,7 @@ Partial Class ChlrTrnsOpCtrlMain
         Me.Label31.Name = "Label31"
         Me.Label31.Size = New System.Drawing.Size(38, 12)
         Me.Label31.TabIndex = 80
-        Me.Label31.Text = "x10 %"
+        Me.Label31.Text = "/10 %"
         '
         'Label32
         '
@@ -562,7 +568,7 @@ Partial Class ChlrTrnsOpCtrlMain
         Me.Label32.Name = "Label32"
         Me.Label32.Size = New System.Drawing.Size(38, 12)
         Me.Label32.TabIndex = 81
-        Me.Label32.Text = "x10 %"
+        Me.Label32.Text = "/10 %"
         '
         'TextBoxCWBypassValve
         '
@@ -734,11 +740,73 @@ Partial Class ChlrTrnsOpCtrlMain
         Me.Label41.TabIndex = 97
         Me.Label41.Text = "TR-4"
         '
+        'Label42
+        '
+        Me.Label42.AutoSize = True
+        Me.Label42.Font = New System.Drawing.Font("MS UI Gothic", 9.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(128, Byte))
+        Me.Label42.Location = New System.Drawing.Point(563, 163)
+        Me.Label42.Name = "Label42"
+        Me.Label42.Size = New System.Drawing.Size(32, 12)
+        Me.Label42.TabIndex = 100
+        Me.Label42.Text = "㎥/h"
+        '
+        'Label43
+        '
+        Me.Label43.AutoSize = True
+        Me.Label43.Font = New System.Drawing.Font("MS UI Gothic", 9.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(128, Byte))
+        Me.Label43.Location = New System.Drawing.Point(391, 163)
+        Me.Label43.Name = "Label43"
+        Me.Label43.Size = New System.Drawing.Size(60, 12)
+        Me.Label43.TabIndex = 99
+        Me.Label43.Text = "冷水流量:"
+        '
+        'TextBoxTR1FL
+        '
+        Me.TextBoxTR1FL.Location = New System.Drawing.Point(457, 160)
+        Me.TextBoxTR1FL.Name = "TextBoxTR1FL"
+        Me.TextBoxTR1FL.ReadOnly = True
+        Me.TextBoxTR1FL.Size = New System.Drawing.Size(100, 19)
+        Me.TextBoxTR1FL.TabIndex = 98
+        '
+        'Label44
+        '
+        Me.Label44.AutoSize = True
+        Me.Label44.Font = New System.Drawing.Font("MS UI Gothic", 9.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(128, Byte))
+        Me.Label44.Location = New System.Drawing.Point(563, 188)
+        Me.Label44.Name = "Label44"
+        Me.Label44.Size = New System.Drawing.Size(32, 12)
+        Me.Label44.TabIndex = 103
+        Me.Label44.Text = "㎥/h"
+        '
+        'Label45
+        '
+        Me.Label45.AutoSize = True
+        Me.Label45.Font = New System.Drawing.Font("MS UI Gothic", 9.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(128, Byte))
+        Me.Label45.Location = New System.Drawing.Point(391, 188)
+        Me.Label45.Name = "Label45"
+        Me.Label45.Size = New System.Drawing.Size(60, 12)
+        Me.Label45.TabIndex = 102
+        Me.Label45.Text = "冷水流量:"
+        '
+        'TextBoxTR2FL
+        '
+        Me.TextBoxTR2FL.Location = New System.Drawing.Point(457, 185)
+        Me.TextBoxTR2FL.Name = "TextBoxTR2FL"
+        Me.TextBoxTR2FL.ReadOnly = True
+        Me.TextBoxTR2FL.Size = New System.Drawing.Size(100, 19)
+        Me.TextBoxTR2FL.TabIndex = 101
+        '
         'ChlrTrnsOpCtrlMain
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 12.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(716, 608)
+        Me.Controls.Add(Me.Label44)
+        Me.Controls.Add(Me.Label45)
+        Me.Controls.Add(Me.TextBoxTR2FL)
+        Me.Controls.Add(Me.Label42)
+        Me.Controls.Add(Me.Label43)
+        Me.Controls.Add(Me.TextBoxTR1FL)
         Me.Controls.Add(Me.Label41)
         Me.Controls.Add(Me.Label40)
         Me.Controls.Add(Me.Label39)
@@ -885,4 +953,10 @@ Partial Class ChlrTrnsOpCtrlMain
     Friend WithEvents Label39 As Label
     Friend WithEvents Label40 As Label
     Friend WithEvents Label41 As Label
+    Friend WithEvents Label42 As Label
+    Friend WithEvents Label43 As Label
+    Friend WithEvents TextBoxTR1FL As TextBox
+    Friend WithEvents Label44 As Label
+    Friend WithEvents Label45 As Label
+    Friend WithEvents TextBoxTR2FL As TextBox
 End Class

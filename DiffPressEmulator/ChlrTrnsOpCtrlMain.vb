@@ -19,6 +19,16 @@ Public Class ChlrTrnsOpCtrlMain
     Private tag_TR3 As String
     Private tag_TR4 As String
 
+    Private tag_AR1AOSET As String
+    Private tag_AR2AOSET As String
+    Private tag_AR3AOSET As String
+    Private tag_AR4AOSET As String
+    Private tag_AR5AOSET As String
+    Private tag_TR1AOSET As String
+    Private tag_TR2AOSET As String
+    Private tag_TR34AOSET As String
+    Private tag_STAOSET As String
+
     Private tag_AR1FLsp As String
     Private tag_AR2FLsp As String
     Private tag_AR3FLsp As String
@@ -29,12 +39,22 @@ Public Class ChlrTrnsOpCtrlMain
     Private tag_TR3FLsp As String
     Private tag_TR4FLsp As String
 
+    Private tag_TR1FL As String
+    Private tag_TR2FL As String
+
+    Private tag_TR1CW_AUTO_MAN_SWITCH As String
+    Private tag_TR2CW_AUTO_MAN_SWITCH As String
+
+    Private tag_TR1CW_MAN As String
+    Private tag_TR2CW_MAN As String
+
     Private tag_AR1CWOutValve As String
     Private tag_AR2CWOutValve As String
     Private tag_AR3CWOutValve As String
     Private tag_AR4CWOutValve As String
     Private tag_AR5CWOutValve As String
     Private tag_CWBypassValve As String
+    Private tag_CWBypassValveSet As String
 
     Private AR1State As Boolean
     Private AR2State As Boolean
@@ -66,14 +86,31 @@ Public Class ChlrTrnsOpCtrlMain
     Private TR3FLsp As Double
     Private TR4FLsp As Double
 
+    Private TR1FL As Double
+    Private TR2FL As Double
+
     Private AR1CWOutValve As Double
     Private AR2CWOutValve As Double
     Private AR3CWOutValve As Double
     Private AR4CWOutValve As Double
     Private AR5CWOutValve As Double
+
+
     Private CWBypassValve As Double
 
     Private isStarted As Boolean
+    Private isCWBypassSet30Percent As Boolean
+    Private isStabilized As Boolean
+
+    ' 流量安定判定関数（isStabilized）呼び出し履歴（時刻, 値）を保持
+    Private ReadOnly history As New List(Of (Timestamp As DateTime, Value As Double))
+
+    ' 流量安定判定関数（isStabilized）監視期間（秒）と許容誤差（±2%）
+    Private Const WindowSeconds As Double = 30.0
+    Private Const TolerancePercent As Double = 0.01
+
+    ' 冷水バイパス弁閉止までのリードタイム（秒）
+    Private Const CWBypassCloseLeadTime As Double = 240
 
     Private Sub FormDiffPressEmulatorMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         ' 起動時引数をメッセージとして画面に表示
@@ -95,21 +132,43 @@ Public Class ChlrTrnsOpCtrlMain
         tag_TR3 = "UA.TR34.DO0097"
         tag_TR4 = "UA.TR34.DO0113"
 
-        tag_AR1FLsp = "UAL.AR1.AO0025"
-        tag_AR2FLsp = "UBL.AR2.AO0025"
-        tag_AR3FLsp = "UAL.AR3.AO0041"
-        tag_AR4FLsp = "UBL.AR4.AO0041"
-        tag_AR5FLsp = "UAL.AR5.AO0057"
-        tag_TR1FLsp = "UAL.TR1.AO0009"
-        tag_TR2FLsp = "UBL.TR2.AO0009"
-        tag_TR3FLsp = "UAL.TR34.AO0089"
-        tag_TR4FLsp = "UAL.TR34.AO0105"
+        tag_AR1AOSET = "UA.AR1.AOSET"
+        tag_AR2AOSET = "UB.AR2.AOSET"
+        tag_AR3AOSET = "UA.AR3.AOSET"
+        tag_AR4AOSET = "UB.AR4.AOSET"
+        tag_AR5AOSET = "UA.AR5.AOSET"
+        tag_TR1AOSET = "UA.TR1.AOSET"
+        tag_TR2AOSET = "UB.TR2.AOSET"
+        tag_TR34AOSET = "UA.TR34.AOSET"
+        tag_STAOSET = "UC.ST.AOSET"
+
+        tag_AR1FLsp = "UA.AR1.AO0025SET"
+        tag_AR2FLsp = "UB.AR2.AO0025SET"
+        tag_AR3FLsp = "UA.AR3.AO0041SET"
+        tag_AR4FLsp = "UB.AR4.AO0041SET"
+        tag_AR5FLsp = "UA.AR5.AO0057SET"
+        tag_TR1FLsp = "UA.TR1.AO0009SET"
+        tag_TR2FLsp = "UB.TR2.AO0009SET"
+        tag_TR3FLsp = "UA.TR34.AO0089SET"
+        tag_TR4FLsp = "UA.TR34.AO0105SET"
+
+        tag_TR1FL = "UA.TR1.AI0018"
+        tag_TR2FL = "UB.TR2.AI0018"
+
+        tag_TR1CW_AUTO_MAN_SWITCH = "UAL.TR1.DO0005"
+        tag_TR2CW_AUTO_MAN_SWITCH = "UBL.TR2.DO0005"
+
+        tag_TR1CW_MAN = "UAL.TR1.DO0005_MAN"
+        tag_TR2CW_MAN = "UBL.TR2.DO0005_MAN"
+
         tag_AR1CWOutValve = "UA.AR1.AI0029"
         tag_AR2CWOutValve = "UB.AR2.AI0029"
         tag_AR3CWOutValve = "UA.AR3.AI0053"
         tag_AR4CWOutValve = "UB.AR4.AI0053"
         tag_AR5CWOutValve = "UA.AR5.AI0077"
-        tag_CWBypassValve = "UCL.ST.AO0022"
+
+        tag_CWBypassValve = "UC.ST.AO0022"
+        tag_CWBypassValveSet = "UC.ST.AO0022SET"
 
         ' TagのIPLink登録
         AxIPLink1.AddTag(tag_AR1, True)
@@ -121,6 +180,15 @@ Public Class ChlrTrnsOpCtrlMain
         AxIPLink1.AddTag(tag_TR2, True)
         AxIPLink1.AddTag(tag_TR3, True)
         AxIPLink1.AddTag(tag_TR4, True)
+        AxIPLink1.AddTag(tag_AR1AOSET, True)
+        AxIPLink1.AddTag(tag_AR2AOSET, True)
+        AxIPLink1.AddTag(tag_AR3AOSET, True)
+        AxIPLink1.AddTag(tag_AR4AOSET, True)
+        AxIPLink1.AddTag(tag_AR5AOSET, True)
+        AxIPLink1.AddTag(tag_TR1AOSET, True)
+        AxIPLink1.AddTag(tag_TR2AOSET, True)
+        AxIPLink1.AddTag(tag_TR34AOSET, True)
+        AxIPLink1.AddTag(tag_STAOSET, True)
         AxIPLink1.AddTag(tag_AR1FLsp, True)
         AxIPLink1.AddTag(tag_AR2FLsp, True)
         AxIPLink1.AddTag(tag_AR3FLsp, True)
@@ -130,12 +198,19 @@ Public Class ChlrTrnsOpCtrlMain
         AxIPLink1.AddTag(tag_TR2FLsp, True)
         AxIPLink1.AddTag(tag_TR3FLsp, True)
         AxIPLink1.AddTag(tag_TR4FLsp, True)
+        AxIPLink1.AddTag(tag_TR1FL, True)
+        AxIPLink1.AddTag(tag_TR2FL, True)
+        AxIPLink1.AddTag(tag_TR1CW_AUTO_MAN_SWITCH, True)
+        AxIPLink1.AddTag(tag_TR2CW_AUTO_MAN_SWITCH, True)
+        AxIPLink1.AddTag(tag_TR1CW_MAN, True)
+        AxIPLink1.AddTag(tag_TR2CW_MAN, True)
         AxIPLink1.AddTag(tag_AR1CWOutValve, True)
         AxIPLink1.AddTag(tag_AR2CWOutValve, True)
         AxIPLink1.AddTag(tag_AR3CWOutValve, True)
         AxIPLink1.AddTag(tag_AR4CWOutValve, True)
         AxIPLink1.AddTag(tag_AR5CWOutValve, True)
         AxIPLink1.AddTag(tag_CWBypassValve, True)
+        AxIPLink1.AddTag(tag_CWBypassValveSet, True)
 
         ' 各機器の定格流量の設定
         AR1FLrtd = 432
@@ -151,13 +226,20 @@ Public Class ChlrTrnsOpCtrlMain
         ' 画面の更新
         UpdateForm()
 
-        ' 起動時の機器に応じて、機器のバイパス弁開度の確認を行うかどうかを設定する
+        ' 起動時の機器に応じて、過渡運転が必要かどうかを設定
         Select Case startUpEquipment
             Case "AR1", "AR2", "AR3", "AR4", "AR5"
                 isStarted = False
-            Case "TR1", "TR2", "TR3", "TR4"
+                isStabilized = True
+            Case "TR1", "TR2"
                 isStarted = True
+                isStabilized = False
+            Case "TR3", "TR4"
+                isStarted = True
+                isStabilized = True
         End Select
+
+        isCWBypassSet30Percent = False
 
         StartUpSetting()
         CheckRunningEquipment()
@@ -178,82 +260,172 @@ Public Class ChlrTrnsOpCtrlMain
         Select Case startUpEquipment
             Case "AR1"
                 ' AR-1起動時、冷水流量設定を定格値に設定
-                AR1FLsp = AR1FLrtd
-                AppendLog("Writing: " & tag_AR1FLsp & " = " & Convert.ToString(AR1FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR1FLsp, AR1FLsp) Then
-                    TextBoxAR1FLsp.Text = AR1FLsp.ToString
+                ' AOSETを1にしてから流量設定値を書き込み、書き込み後にAOSETを0に戻す
+                AppendLog("Writing: " & tag_AR1AOSET & " = 1", False)
+                If AxIPLink1.WriteVal(tag_AR1AOSET, 1) Then
+                    AR1FLsp = AR1FLrtd
+                    AppendLog("Writing: " & tag_AR1FLsp & " = " & Convert.ToString(AR1FLsp), False)
+                    If AxIPLink1.WriteVal(tag_AR1FLsp, AR1FLsp) Then
+                        TextBoxAR1FLsp.Text = AR1FLsp.ToString
+                    Else
+                        AppendLog("Error at WriteVal", False)
+                    End If
+                    AppendLog("Writing: " & tag_AR1AOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_AR1AOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
                 End If
             Case "AR2"
                 ' AR-2起動時、冷水流量設定を定格値に設定
-                AR2FLsp = AR2FLrtd
-                AppendLog("Writing: " & tag_AR2FLsp & " = " & Convert.ToString(AR2FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR2FLsp, AR2FLsp) Then
-                    TextBoxAR2FLsp.Text = AR2FLsp.ToString
+                ' AOSETを1にしてから流量設定値を書き込み、書き込み後にAOSETを0に戻す
+                AppendLog("Writing: " & tag_AR2AOSET & " = 1", False)
+                If AxIPLink1.WriteVal(tag_AR2AOSET, 1) Then
+                    AR2FLsp = AR2FLrtd
+                    AppendLog("Writing: " & tag_AR2FLsp & " = " & Convert.ToString(AR2FLsp), False)
+                    If AxIPLink1.WriteVal(tag_AR2FLsp, AR2FLsp) Then
+                        TextBoxAR2FLsp.Text = AR2FLsp.ToString
+                    Else
+                        AppendLog("Error at WriteVal", False)
+                    End If
+                    AppendLog("Writing: " & tag_AR2AOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_AR2AOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
                 End If
             Case "AR3"
                 ' AR-3起動時、冷水流量設定を定格値に設定
-                AR3FLsp = AR3FLrtd
-                AppendLog("Writing: " & tag_AR3FLsp & " = " & Convert.ToString(AR3FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR3FLsp, AR3FLsp) Then
-                    TextBoxAR3FLsp.Text = AR3FLsp.ToString
+                ' AOSETを1にしてから流量設定値を書き込み、書き込み後にAOSETを0に戻す
+                AppendLog("Writing: " & tag_AR3AOSET & " = 1", False)
+                If AxIPLink1.WriteVal(tag_AR3AOSET, 1) Then
+                    AR3FLsp = AR3FLrtd
+                    AppendLog("Writing: " & tag_AR3FLsp & " = " & Convert.ToString(AR3FLsp), False)
+                    If AxIPLink1.WriteVal(tag_AR3FLsp, AR3FLsp) Then
+                        TextBoxAR3FLsp.Text = AR3FLsp.ToString
+                    Else
+                        AppendLog("Error at WriteVal", False)
+                    End If
+                    AppendLog("Writing: " & tag_AR3AOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_AR3AOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
                 End If
             Case "AR4"
                 ' AR-4起動時、冷水流量設定を定格値に設定
-                AR4FLsp = AR4FLrtd
-                AppendLog("Writing: " & tag_AR4FLsp & " = " & Convert.ToString(AR4FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR4FLsp, AR4FLsp) Then
-                    TextBoxAR4FLsp.Text = AR4FLsp.ToString
+                ' AOSETを1にしてから流量設定値を書き込み、書き込み後にAOSETを0に戻す
+                AppendLog("Writing: " & tag_AR4AOSET & " = 1", False)
+                If AxIPLink1.WriteVal(tag_AR4AOSET, 1) Then
+                    AR4FLsp = AR4FLrtd
+                    AppendLog("Writing: " & tag_AR4FLsp & " = " & Convert.ToString(AR4FLsp), False)
+                    If AxIPLink1.WriteVal(tag_AR4FLsp, AR4FLsp) Then
+                        TextBoxAR4FLsp.Text = AR4FLsp.ToString
+                    Else
+                        AppendLog("Error at WriteVal", False)
+                    End If
+                    AppendLog("Writing: " & tag_AR4AOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_AR4AOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
                 End If
             Case "AR5"
                 ' AR-5起動時、冷水流量設定を定格値に設定
-                AR5FLsp = AR5FLrtd
-                AppendLog("Writing: " & tag_AR5FLsp & " = " & Convert.ToString(AR5FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR5FLsp, AR5FLsp) Then
-                    TextBoxAR5FLsp.Text = AR5FLsp.ToString
+                ' AOSETを1にしてから流量設定値を書き込み、書き込み後にAOSETを0に戻す
+                AppendLog("Writing: " & tag_AR5AOSET & " = 1", False)
+                If AxIPLink1.WriteVal(tag_AR5AOSET, 1) Then
+                    AR5FLsp = AR5FLrtd
+                    AppendLog("Writing: " & tag_AR5FLsp & " = " & Convert.ToString(AR5FLsp), False)
+                    If AxIPLink1.WriteVal(tag_AR5FLsp, AR5FLsp) Then
+                        TextBoxAR5FLsp.Text = AR5FLsp.ToString
+                    Else
+                        AppendLog("Error at WriteVal", False)
+                    End If
+                    AppendLog("Writing: " & tag_AR5AOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_AR5AOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
                 End If
             Case "TR1"
                 ' TR-1起動時、冷水流量設定を定格値に設定
-                TR1FLsp = TR1FLrtd
-                AppendLog("Writing: " & tag_TR1FLsp & " = " & Convert.ToString(TR1FLsp), False)
-                If AxIPLink1.WriteVal(tag_TR1FLsp, TR1FLsp) Then
-                    TextBoxTR1FLsp.Text = TR1FLsp.ToString
+                ' AOSETを1にしてから流量設定値を書き込み、書き込み後にAOSETを0に戻す
+                AppendLog("Writing: " & tag_TR1AOSET & " = 1", False)
+                If AxIPLink1.WriteVal(tag_TR1AOSET, 1) Then
+                    TR1FLsp = TR1FLrtd
+                    AppendLog("Writing: " & tag_TR1FLsp & " = " & Convert.ToString(TR1FLsp), False)
+                    If AxIPLink1.WriteVal(tag_TR1FLsp, TR1FLsp) Then
+                        TextBoxTR1FLsp.Text = TR1FLsp.ToString
+                    Else
+                        AppendLog("Error at WriteVal", False)
+                    End If
+                    AppendLog("Writing: " & tag_TR1AOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_TR1AOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
                 End If
             Case "TR2"
                 ' TR-2起動時、冷水流量設定を定格値に設定
-                TR2FLsp = TR2FLrtd
-                AppendLog("Writing: " & tag_TR2FLsp & " = " & Convert.ToString(TR2FLsp), False)
-                If AxIPLink1.WriteVal(tag_TR2FLsp, TR2FLsp) Then
-                    TextBoxTR2FLsp.Text = TR2FLsp.ToString
+                ' AOSETを1にしてから流量設定値を書き込み、書き込み後にAOSETを0に戻す
+                AppendLog("Writing: " & tag_TR2AOSET & " = 1", False)
+                If AxIPLink1.WriteVal(tag_TR2AOSET, 1) Then
+                    TR2FLsp = TR2FLrtd
+                    AppendLog("Writing: " & tag_TR2FLsp & " = " & Convert.ToString(TR2FLsp), False)
+                    If AxIPLink1.WriteVal(tag_TR2FLsp, TR2FLsp) Then
+                        TextBoxTR2FLsp.Text = TR2FLsp.ToString
+                    Else
+                        AppendLog("Error at WriteVal", False)
+                    End If
+                    AppendLog("Writing: " & tag_TR2AOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_TR2AOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
                 End If
             Case "TR3"
                 ' TR-3起動時、冷水流量設定を定格値に設定
-                TR3FLsp = TR3FLrtd
-                AppendLog("Writing: " & tag_TR3FLsp & " = " & Convert.ToString(TR3FLsp), False)
-                If AxIPLink1.WriteVal(tag_TR3FLsp, TR3FLsp) Then
-                    TextBoxTR3FLsp.Text = TR3FLsp.ToString
+                ' AOSETを1にしてから流量設定値を書き込み、書き込み後にAOSETを0に戻す
+                AppendLog("Writing: " & tag_TR34AOSET & " = 1", False)
+                If AxIPLink1.WriteVal(tag_TR34AOSET, 1) Then
+                    TR3FLsp = TR3FLrtd
+                    AppendLog("Writing: " & tag_TR3FLsp & " = " & Convert.ToString(TR3FLsp), False)
+                    If AxIPLink1.WriteVal(tag_TR3FLsp, TR3FLsp) Then
+                        TextBoxTR3FLsp.Text = TR3FLsp.ToString
+                    Else
+                        AppendLog("Error at WriteVal", False)
+                    End If
+                    AppendLog("Writing: " & tag_TR34AOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_TR34AOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
                 End If
             Case "TR4"
                 ' TR-4起動時、冷水流量設定を定格値に設定
-                TR4FLsp = TR4FLrtd
-                AppendLog("Writing: " & tag_TR4FLsp & " = " & Convert.ToString(TR4FLsp), False)
-                If AxIPLink1.WriteVal(tag_TR4FLsp, TR4FLsp) Then
-                    TextBoxTR4FLsp.Text = TR4FLsp.ToString
+                ' AOSETを1にしてから流量設定値を書き込み、書き込み後にAOSETを0に戻す
+                AppendLog("Writing: " & tag_TR34AOSET & " = 1", False)
+                If AxIPLink1.WriteVal(tag_TR34AOSET, 1) Then
+                    TR4FLsp = TR4FLrtd
+                    AppendLog("Writing: " & tag_TR4FLsp & " = " & Convert.ToString(TR4FLsp), False)
+                    If AxIPLink1.WriteVal(tag_TR4FLsp, TR4FLsp) Then
+                        TextBoxTR4FLsp.Text = TR4FLsp.ToString
+                    Else
+                        AppendLog("Error at WriteVal", False)
+                    End If
+                    AppendLog("Writing: " & tag_TR34AOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_TR34AOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
                 End If
@@ -420,8 +592,7 @@ Public Class ChlrTrnsOpCtrlMain
 
             Select Case startUpEquipment
                 Case "AR1"
-
-                    ' AR-1 温水送水弁開度 確認
+                    ' AR-1 冷水送水弁開度 確認
                     vVal = Nothing
                     If Not AxIPLink1.ReadVal(tag_AR1CWOutValve, vVal, 1) Then
                         AppendLog("Error at ReadVal of tag_AR1CWOutValve", False)
@@ -430,22 +601,30 @@ Public Class ChlrTrnsOpCtrlMain
                         AR1CWOutValve = Convert.ToDouble(vVal)
                         AppendLog("Reading:" & tag_AR1CWOutValve & " = " & Convert.ToString(AR1CWOutValve), False)
                         TextBoxAR1CWOutValve.Text = AR1CWOutValve.ToString()
-                    End If
-
-                    If AR1CWOutValve >= 700 Then
-                        CWBypassValve = 300
-                        AppendLog("Writing: " & tag_CWBypassValve & " = " & Convert.ToString(CWBypassValve), False)
-                        If AxIPLink1.WriteVal(tag_CWBypassValve, CWBypassValve) Then
-                            TextBoxCWBypassValve.Text = CWBypassValve.ToString()
-                            isStarted = True
+                        ' 冷水バイパス弁開度を温水送水弁開度に応じて設定
+                        CWBypassValve = If(AR1CWOutValve <= 200, 30, If(AR1CWOutValve >= 500, 300, 30 + (AR1CWOutValve - 200) / (500 - 200) * (300 - 30)))
+                        AppendLog("Writing: " & tag_STAOSET & " = 1", False)
+                        If AxIPLink1.WriteVal(tag_STAOSET, 1) Then
+                            AppendLog("Writing: " & tag_CWBypassValveSet & " = " & Convert.ToString(CWBypassValve), False)
+                            If AxIPLink1.WriteVal(tag_CWBypassValveSet, CWBypassValve) Then
+                                TextBoxCWBypassValve.Text = CWBypassValve.ToString()
+                                isCWBypassSet30Percent = True
+                            Else
+                                AppendLog("Error at WriteVal", False)
+                            End If
+                            AppendLog("Writing: " & tag_STAOSET & " = 0", False)
+                            If Not AxIPLink1.WriteVal(tag_STAOSET, 0) Then
+                                AppendLog("Error at WriteVal", False)
+                            End If
                         Else
                             AppendLog("Error at WriteVal", False)
                         End If
                     End If
-
+                    If AR1CWOutValve >= 500 Then
+                        isStarted = True
+                    End If
                 Case "AR2"
-
-                    ' AR-2 温水送水弁開度 確認
+                    ' AR-2 冷水送水弁開度 確認
                     vVal = Nothing
                     If Not AxIPLink1.ReadVal(tag_AR2CWOutValve, vVal, 1) Then
                         AppendLog("Error at ReadVal of tag_AR2CWOutValve", False)
@@ -454,22 +633,30 @@ Public Class ChlrTrnsOpCtrlMain
                         AR2CWOutValve = Convert.ToDouble(vVal)
                         AppendLog("Reading:" & tag_AR2CWOutValve & " = " & Convert.ToString(AR2CWOutValve), False)
                         TextBoxAR2CWOutValve.Text = AR2CWOutValve.ToString()
-                    End If
-
-                    If AR2CWOutValve >= 700 Then
-                        CWBypassValve = 300
-                        AppendLog("Writing: " & tag_CWBypassValve & " = " & Convert.ToString(CWBypassValve), False)
-                        If AxIPLink1.WriteVal(tag_CWBypassValve, CWBypassValve) Then
-                            TextBoxCWBypassValve.Text = CWBypassValve.ToString()
-                            isStarted = True
+                        ' 冷水バイパス弁開度を温水送水弁開度に応じて設定
+                        CWBypassValve = If(AR2CWOutValve <= 200, 30, If(AR2CWOutValve >= 500, 300, 30 + (AR2CWOutValve - 200) / (500 - 200) * (300 - 30)))
+                        AppendLog("Writing: " & tag_STAOSET & " = 1", False)
+                        If AxIPLink1.WriteVal(tag_STAOSET, 1) Then
+                            AppendLog("Writing: " & tag_CWBypassValveSet & " = " & Convert.ToString(CWBypassValve), False)
+                            If AxIPLink1.WriteVal(tag_CWBypassValveSet, CWBypassValve) Then
+                                TextBoxCWBypassValve.Text = CWBypassValve.ToString()
+                                isCWBypassSet30Percent = True
+                            Else
+                                AppendLog("Error at WriteVal", False)
+                            End If
+                            AppendLog("Writing: " & tag_STAOSET & " = 0", False)
+                            If Not AxIPLink1.WriteVal(tag_STAOSET, 0) Then
+                                AppendLog("Error at WriteVal", False)
+                            End If
                         Else
                             AppendLog("Error at WriteVal", False)
                         End If
                     End If
-
+                    If AR2CWOutValve >= 500 Then
+                        isStarted = True
+                    End If
                 Case "AR3"
-
-                    ' AR-3 温水送水弁開度 確認
+                    ' AR-3 冷水送水弁開度 確認
                     vVal = Nothing
                     If Not AxIPLink1.ReadVal(tag_AR3CWOutValve, vVal, 1) Then
                         AppendLog("Error at ReadVal of tag_AR3CWOutValve", False)
@@ -478,22 +665,30 @@ Public Class ChlrTrnsOpCtrlMain
                         AR3CWOutValve = Convert.ToDouble(vVal)
                         AppendLog("Reading:" & tag_AR3CWOutValve & " = " & Convert.ToString(AR3CWOutValve), False)
                         TextBoxAR3CWOutValve.Text = AR3CWOutValve.ToString()
-                    End If
-
-                    If AR3CWOutValve >= 700 Then
-                        CWBypassValve = 300
-                        AppendLog("Writing: " & tag_CWBypassValve & " = " & Convert.ToString(CWBypassValve), False)
-                        If AxIPLink1.WriteVal(tag_CWBypassValve, CWBypassValve) Then
-                            TextBoxCWBypassValve.Text = CWBypassValve.ToString()
-                            isStarted = True
+                        ' 冷水バイパス弁開度を温水送水弁開度に応じて設定
+                        CWBypassValve = If(AR3CWOutValve <= 200, 30, If(AR3CWOutValve >= 500, 300, 30 + (AR3CWOutValve - 200) / (500 - 200) * (300 - 30)))
+                        AppendLog("Writing: " & tag_STAOSET & " = 1", False)
+                        If AxIPLink1.WriteVal(tag_STAOSET, 1) Then
+                            AppendLog("Writing: " & tag_CWBypassValveSet & " = " & Convert.ToString(CWBypassValve), False)
+                            If AxIPLink1.WriteVal(tag_CWBypassValveSet, CWBypassValve) Then
+                                TextBoxCWBypassValve.Text = CWBypassValve.ToString()
+                                isCWBypassSet30Percent = True
+                            Else
+                                AppendLog("Error at WriteVal", False)
+                            End If
+                            AppendLog("Writing: " & tag_STAOSET & " = 0", False)
+                            If Not AxIPLink1.WriteVal(tag_STAOSET, 0) Then
+                                AppendLog("Error at WriteVal", False)
+                            End If
                         Else
                             AppendLog("Error at WriteVal", False)
                         End If
                     End If
-
+                    If AR3CWOutValve >= 500 Then
+                        isStarted = True
+                    End If
                 Case "AR4"
-
-                    ' AR-4 温水送水弁開度 確認
+                    ' AR-4 冷水送水弁開度 確認
                     vVal = Nothing
                     If Not AxIPLink1.ReadVal(tag_AR4CWOutValve, vVal, 1) Then
                         AppendLog("Error at ReadVal of tag_AR4CWOutValve", False)
@@ -502,22 +697,30 @@ Public Class ChlrTrnsOpCtrlMain
                         AR4CWOutValve = Convert.ToDouble(vVal)
                         AppendLog("Reading:" & tag_AR4CWOutValve & " = " & Convert.ToString(AR4CWOutValve), False)
                         TextBoxAR4CWOutValve.Text = AR4CWOutValve.ToString()
-                    End If
-
-                    If AR4CWOutValve >= 700 Then
-                        CWBypassValve = 300
-                        AppendLog("Writing: " & tag_CWBypassValve & " = " & Convert.ToString(CWBypassValve), False)
-                        If AxIPLink1.WriteVal(tag_CWBypassValve, CWBypassValve) Then
-                            TextBoxCWBypassValve.Text = CWBypassValve.ToString()
-                            isStarted = True
+                        ' 冷水バイパス弁開度を温水送水弁開度に応じて設定
+                        CWBypassValve = If(AR4CWOutValve <= 200, 30, If(AR4CWOutValve >= 500, 300, 30 + (AR4CWOutValve - 200) / (500 - 200) * (300 - 30)))
+                        AppendLog("Writing: " & tag_STAOSET & " = 1", False)
+                        If AxIPLink1.WriteVal(tag_STAOSET, 1) Then
+                            AppendLog("Writing: " & tag_CWBypassValveSet & " = " & Convert.ToString(CWBypassValve), False)
+                            If AxIPLink1.WriteVal(tag_CWBypassValveSet, CWBypassValve) Then
+                                TextBoxCWBypassValve.Text = CWBypassValve.ToString()
+                                isCWBypassSet30Percent = True
+                            Else
+                                AppendLog("Error at WriteVal", False)
+                            End If
+                            AppendLog("Writing: " & tag_STAOSET & " = 0", False)
+                            If Not AxIPLink1.WriteVal(tag_STAOSET, 0) Then
+                                AppendLog("Error at WriteVal", False)
+                            End If
                         Else
                             AppendLog("Error at WriteVal", False)
                         End If
                     End If
-
+                    If AR4CWOutValve >= 500 Then
+                        isStarted = True
+                    End If
                 Case "AR5"
-
-                    ' AR-5 温水送水弁開度 確認
+                    ' AR-5 冷水送水弁開度 確認
                     vVal = Nothing
                     If Not AxIPLink1.ReadVal(tag_AR5CWOutValve, vVal, 1) Then
                         AppendLog("Error at ReadVal of tag_AR5CWOutValve", False)
@@ -526,276 +729,164 @@ Public Class ChlrTrnsOpCtrlMain
                         AR5CWOutValve = Convert.ToDouble(vVal)
                         AppendLog("Reading:" & tag_AR5CWOutValve & " = " & Convert.ToString(AR5CWOutValve), False)
                         TextBoxAR5CWOutValve.Text = AR5CWOutValve.ToString()
-                    End If
-
-                    If AR5CWOutValve >= 700 Then
-                        CWBypassValve = 300
-                        AppendLog("Writing: " & tag_CWBypassValve & " = " & Convert.ToString(CWBypassValve), False)
-                        If AxIPLink1.WriteVal(tag_CWBypassValve, CWBypassValve) Then
-                            TextBoxCWBypassValve.Text = CWBypassValve.ToString()
-                            isStarted = True
+                        ' 冷水バイパス弁開度を温水送水弁開度に応じて設定
+                        CWBypassValve = If(AR5CWOutValve <= 200, 30, If(AR5CWOutValve >= 500, 300, 30 + (AR5CWOutValve - 200) / (500 - 200) * (300 - 30)))
+                        AppendLog("Writing: " & tag_STAOSET & " = 1", False)
+                        If AxIPLink1.WriteVal(tag_STAOSET, 1) Then
+                            AppendLog("Writing: " & tag_CWBypassValveSet & " = " & Convert.ToString(CWBypassValve), False)
+                            If AxIPLink1.WriteVal(tag_CWBypassValveSet, CWBypassValve) Then
+                                TextBoxCWBypassValve.Text = CWBypassValve.ToString()
+                                isCWBypassSet30Percent = True
+                            Else
+                                AppendLog("Error at WriteVal", False)
+                            End If
+                            AppendLog("Writing: " & tag_STAOSET & " = 0", False)
+                            If Not AxIPLink1.WriteVal(tag_STAOSET, 0) Then
+                                AppendLog("Error at WriteVal", False)
+                            End If
                         Else
                             AppendLog("Error at WriteVal", False)
                         End If
                     End If
-
+                    If AR5CWOutValve >= 500 Then
+                        isStarted = True
+                    End If
             End Select
+
         End If
 
-        If isStarted Then
 
-            If AR1State Then
-
-                ' AR-1 冷水流量設定 減
-                vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_AR1FLsp, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_AR1FLsp", False)
-                    Exit Sub
-                Else
-                    AR1FLsp = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_AR1FLsp & " = " & Convert.ToString(AR1FLsp), False)
-                    TextBoxAR1FLsp.Text = AR1FLsp.ToString()
-                End If
-
-                AR1FLsp = If(AR1FLsp - 1 > AR1FLrtd * 0.7, AR1FLsp - 1, AR1FLrtd * 0.7)
-                AppendLog("Writing: " & tag_AR1FLsp & " = " & Convert.ToString(AR1FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR1FLsp, AR1FLsp) Then
-                    TextBoxAR1FLsp.Text = AR1FLsp.ToString()
+        If isStarted And Not isCWBypassSet30Percent Then
+            CWBypassValve = 300
+            AppendLog("Writing: " & tag_STAOSET & " = 1", False)
+            If AxIPLink1.WriteVal(tag_STAOSET, 1) Then
+                AppendLog("Writing: " & tag_CWBypassValveSet & " = " & Convert.ToString(CWBypassValve), False)
+                If AxIPLink1.WriteVal(tag_CWBypassValveSet, CWBypassValve) Then
+                    TextBoxCWBypassValve.Text = CWBypassValve.ToString()
+                    isCWBypassSet30Percent = True
                 Else
                     AppendLog("Error at WriteVal", False)
-                    Exit Sub
                 End If
-
-            End If
-
-            If AR2State Then
-
-                ' AR-2 冷水流量設定 減
-                vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_AR2FLsp, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_AR2FLsp", False)
-                    Exit Sub
-                Else
-                    AR2FLsp = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_AR2FLsp & " = " & Convert.ToString(AR2FLsp), False)
-                    TextBoxAR2FLsp.Text = AR2FLsp.ToString()
-                End If
-
-                AR2FLsp = If(AR2FLsp - 1 > AR2FLrtd * 0.7, AR2FLsp - 1, AR2FLrtd * 0.7)
-                AppendLog("Writing: " & tag_AR2FLsp & " = " & Convert.ToString(AR2FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR2FLsp, AR2FLsp) Then
-                    TextBoxAR2FLsp.Text = AR2FLsp.ToString()
-                Else
+                AppendLog("Writing: " & tag_STAOSET & " = 0", False)
+                If Not AxIPLink1.WriteVal(tag_STAOSET, 0) Then
                     AppendLog("Error at WriteVal", False)
-                    Exit Sub
                 End If
-
+            Else
+                AppendLog("Error at WriteVal", False)
             End If
+        End If
 
-            If AR3State Then
 
-                ' AR-3 冷水流量設定 減
-                vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_AR3FLsp, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_AR3FLsp", False)
-                    Exit Sub
-                Else
-                    AR3FLsp = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_AR3FLsp & " = " & Convert.ToString(AR3FLsp), False)
-                    TextBoxAR3FLsp.Text = AR3FLsp.ToString()
-                End If
+        If isStarted And isCWBypassSet30Percent And Not isStabilized Then
 
-                AR3FLsp = If(AR3FLsp - 1 > AR3FLrtd * 0.7, AR3FLsp - 1, AR3FLrtd * 0.7)
-                AppendLog("Writing: " & tag_AR3FLsp & " = " & Convert.ToString(AR3FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR3FLsp, AR3FLsp) Then
-                    TextBoxAR3FLsp.Text = AR3FLsp.ToString()
-                Else
-                    AppendLog("Error at WriteVal", False)
-                    Exit Sub
-                End If
+            Select Case startUpEquipment
+                Case "TR1"
+                    ' TR-1 冷水流量確認
+                    vVal = Nothing
+                    If Not AxIPLink1.ReadVal(tag_TR1FL, vVal, 1) Then
+                        AppendLog("Error at ReadVal of tag_TR1FL", False)
+                        Exit Sub
+                    Else
+                        TR1FL = Convert.ToDouble(vVal)
+                        AppendLog("Reading:" & tag_TR1FL & " = " & Convert.ToString(TR1FL), False)
+                        TextBoxTR1FL.Text = TR1FL.ToString()
+                    End If
+                    ' TR-1 冷水流量が定格の±1%の範囲に安定しているか確認
+                    If CheckStability(TR1FL) Then
+                        ' 流量制御を手動に切換
+                        AppendLog("Writing: " & tag_TR1CW_AUTO_MAN_SWITCH & " = " & "False", False)
+                        If AxIPLink1.WriteVal(tag_TR1CW_AUTO_MAN_SWITCH, False) Then
+                        Else
+                            AppendLog("Error at WriteVal", False)
+                            Exit Sub
+                        End If
+                        AppendLog("Writing: " & tag_TR1CW_MAN & " = " & "True", False)
+                        If AxIPLink1.WriteVal(tag_TR1CW_MAN, True) Then
+                            isStabilized = True
+                        Else
+                            AppendLog("Error at WriteVal", False)
+                            Exit Sub
+                        End If
+                    End If
+                Case "TR2"
+                    ' TR-2 冷水流量確認
+                    vVal = Nothing
+                    If Not AxIPLink1.ReadVal(tag_TR2FL, vVal, 1) Then
+                        AppendLog("Error at ReadVal of tag_TR2FL", False)
+                        Exit Sub
+                    Else
+                        TR2FL = Convert.ToDouble(vVal)
+                        AppendLog("Reading:" & tag_TR2FL & " = " & Convert.ToString(TR2FL), False)
+                        TextBoxTR2FL.Text = TR2FL.ToString()
+                    End If
+                    ' TR-2 冷水流量が定格の±1%の範囲に安定しているか確認
+                    If CheckStability(TR2FL) Then
+                        ' 流量制御を手動に切換
+                        AppendLog("Writing: " & tag_TR2CW_AUTO_MAN_SWITCH & " = " & "False", False)
+                        If AxIPLink1.WriteVal(tag_TR2CW_AUTO_MAN_SWITCH, False) Then
+                        Else
+                            AppendLog("Error at WriteVal", False)
+                            Exit Sub
+                        End If
+                        AppendLog("Writing: " & tag_TR2CW_MAN & " = " & "True", False)
+                        If AxIPLink1.WriteVal(tag_TR2CW_MAN, True) Then
+                            isStabilized = True
+                        Else
+                            AppendLog("Error at WriteVal", False)
+                            Exit Sub
+                        End If
+                    End If
+            End Select
 
-            End If
+        End If
 
-            If AR4State Then
 
-                ' AR-4 冷水流量設定 減
-                vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_AR4FLsp, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_AR4FLsp", False)
-                    Exit Sub
-                Else
-                    AR4FLsp = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_AR4FLsp & " = " & Convert.ToString(AR4FLsp), False)
-                    TextBoxAR4FLsp.Text = AR4FLsp.ToString()
-                End If
-
-                AR4FLsp = If(AR4FLsp - 1 > AR4FLrtd * 0.7, AR4FLsp - 1, AR4FLrtd * 0.7)
-                AppendLog("Writing: " & tag_AR4FLsp & " = " & Convert.ToString(AR4FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR4FLsp, AR4FLsp) Then
-                    TextBoxAR4FLsp.Text = AR4FLsp.ToString()
-                Else
-                    AppendLog("Error at WriteVal", False)
-                    Exit Sub
-                End If
-
-            End If
-
-            If AR5State Then
-
-                ' AR-5 冷水流量設定 減
-                vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_AR5FLsp, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_AR5FLsp", False)
-                    Exit Sub
-                Else
-                    AR5FLsp = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_AR5FLsp & " = " & Convert.ToString(AR5FLsp), False)
-                    TextBoxAR5FLsp.Text = AR5FLsp.ToString()
-                End If
-
-                AR5FLsp = If(AR5FLsp - 1 > AR5FLrtd * 0.7, AR5FLsp - 1, AR5FLrtd * 0.7)
-                AppendLog("Writing: " & tag_AR5FLsp & " = " & Convert.ToString(AR5FLsp), False)
-                If AxIPLink1.WriteVal(tag_AR5FLsp, AR5FLsp) Then
-                    TextBoxAR5FLsp.Text = AR5FLsp.ToString()
-                Else
-                    AppendLog("Error at WriteVal", False)
-                    Exit Sub
-                End If
-
-            End If
-
-            If TR1State Then
-
-                ' TR-1 冷水流量設定 減
-                vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_TR1FLsp, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_TR1FLsp", False)
-                    Exit Sub
-                Else
-                    TR1FLsp = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_TR1FLsp & " = " & Convert.ToString(TR1FLsp), False)
-                    TextBoxTR1FLsp.Text = TR1FLsp.ToString()
-                End If
-
-                TR1FLsp = If(TR1FLsp - 1 > TR1FLrtd * 0.7, TR1FLsp - 1, TR1FLrtd * 0.7)
-                AppendLog("Writing: " & tag_TR1FLsp & " = " & Convert.ToString(TR1FLsp), False)
-                If AxIPLink1.WriteVal(tag_TR1FLsp, TR1FLsp) Then
-                    TextBoxTR1FLsp.Text = TR1FLsp.ToString()
-                Else
-                    AppendLog("Error at WriteVal", False)
-                    Exit Sub
-                End If
-
-            End If
-
-            If TR2State Then
-
-                ' TR-2 冷水流量設定 減
-                vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_TR2FLsp, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_TR2FLsp", False)
-                    Exit Sub
-                Else
-                    TR2FLsp = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_TR2FLsp & " = " & Convert.ToString(TR2FLsp), False)
-                    TextBoxTR2FLsp.Text = TR2FLsp.ToString()
-                End If
-
-                TR2FLsp = If(TR2FLsp - 1 > TR2FLrtd * 0.7, TR2FLsp - 1, TR2FLrtd * 0.7)
-                AppendLog("Writing: " & tag_TR2FLsp & " = " & Convert.ToString(TR2FLsp), False)
-                If AxIPLink1.WriteVal(tag_TR2FLsp, TR2FLsp) Then
-                    TextBoxTR2FLsp.Text = TR2FLsp.ToString()
-                Else
-                    AppendLog("Error at WriteVal", False)
-                    Exit Sub
-                End If
-
-            End If
-
-            If TR3State Then
-
-                ' TR-3 冷水流量設定 減
-                vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_TR3FLsp, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_TR3FLsp", False)
-                    Exit Sub
-                Else
-                    TR3FLsp = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_TR3FLsp & " = " & Convert.ToString(TR3FLsp), False)
-                    TextBoxTR3FLsp.Text = TR3FLsp.ToString()
-                End If
-
-                TR3FLsp = If(TR3FLsp - 1 > TR3FLrtd * 0.7, TR3FLsp - 1, TR3FLrtd * 0.7)
-                AppendLog("Writing: " & tag_TR3FLsp & " = " & Convert.ToString(TR3FLsp), False)
-                If AxIPLink1.WriteVal(tag_TR3FLsp, TR3FLsp) Then
-                    TextBoxTR3FLsp.Text = TR3FLsp.ToString()
-                Else
-                    AppendLog("Error at WriteVal", False)
-                    Exit Sub
-                End If
-
-            End If
-
-            If TR4State Then
-
-                ' TR-4 冷水流量設定 減
-                vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_TR4FLsp, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_TR4FLsp", False)
-                    Exit Sub
-                Else
-                    TR4FLsp = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_TR4FLsp & " = " & Convert.ToString(TR4FLsp), False)
-                    TextBoxTR4FLsp.Text = TR4FLsp.ToString()
-                End If
-
-                TR4FLsp = If(TR4FLsp - 1 > TR4FLrtd * 0.7, TR4FLsp - 1, TR4FLrtd * 0.7)
-                AppendLog("Writing: " & tag_TR4FLsp & " = " & Convert.ToString(TR4FLsp), False)
-                If AxIPLink1.WriteVal(tag_TR4FLsp, TR4FLsp) Then
-                    TextBoxTR4FLsp.Text = TR4FLsp.ToString()
-                Else
-                    AppendLog("Error at WriteVal", False)
-                    Exit Sub
-                End If
-
-            End If
-
+        If isStarted And isCWBypassSet30Percent And isStabilized Then
 
             ' 冷水バイパス弁開度 減
             vVal = Nothing
-                If Not AxIPLink1.ReadVal(tag_CWBypassValve, vVal, 1) Then
-                    AppendLog("Error at ReadVal of tag_CWBypassValve", False)
-                    Exit Sub
-                Else
-                    CWBypassValve = Convert.ToDouble(vVal)
-                    AppendLog("Reading:" & tag_CWBypassValve & " = " & Convert.ToString(CWBypassValve), False)
-                    TextBoxCWBypassValve.Text = CWBypassValve.ToString()
-                End If
+            If Not AxIPLink1.ReadVal(tag_CWBypassValve, vVal, 1) Then
+                AppendLog("Error at ReadVal of tag_CWBypassValve", False)
+                Exit Sub
+            Else
+                CWBypassValve = Convert.ToDouble(vVal)
+                AppendLog("Reading:" & tag_CWBypassValve & " = " & Convert.ToString(CWBypassValve), False)
+                TextBoxCWBypassValve.Text = CWBypassValve.ToString()
+            End If
 
-                CWBypassValve = If(CWBypassValve - 5 > 30, CWBypassValve - 5, 30)
-                AppendLog("Writing: " & tag_CWBypassValve & " = " & Convert.ToString(CWBypassValve), False)
-                If AxIPLink1.WriteVal(tag_CWBypassValve, CWBypassValve) Then
+            Dim CWBypassDecrement As Double
+            CWBypassDecrement = (300 - 30) / (CWBypassCloseLeadTime / NumericUpDownTimerInterval.Value)
+
+            CWBypassValve = If(CWBypassValve - CWBypassDecrement > 30, CWBypassValve - CWBypassDecrement, 30)
+            AppendLog("Writing: " & tag_STAOSET & " = 1", False)
+            If AxIPLink1.WriteVal(tag_STAOSET, 1) Then
+                AppendLog("Writing: " & tag_CWBypassValveSet & " = " & Convert.ToString(CWBypassValve), False)
+                If AxIPLink1.WriteVal(tag_CWBypassValveSet, CWBypassValve) Then
                     TextBoxCWBypassValve.Text = CWBypassValve.ToString()
+                    AppendLog("Writing: " & tag_STAOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_STAOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                 Else
                     AppendLog("Error at WriteVal", False)
+                    AppendLog("Writing: " & tag_STAOSET & " = 0", False)
+                    If Not AxIPLink1.WriteVal(tag_STAOSET, 0) Then
+                        AppendLog("Error at WriteVal", False)
+                    End If
                     Exit Sub
                 End If
+            Else
+                AppendLog("Error at WriteVal", False)
+                Exit Sub
+            End If
 
-            ' 流量・開度確認（運転中でない機器は判定対象から除外する）
-            If (Not AR1State Or AR1FLsp <= AR1FLrtd * 0.7) _
-                And (Not AR2State Or AR2FLsp <= AR2FLrtd * 0.7) _
-                And (Not AR3State Or AR3FLsp <= AR3FLrtd * 0.7) _
-                And (Not AR4State Or AR4FLsp <= AR4FLrtd * 0.7) _
-                And (Not AR5State Or AR5FLsp <= AR5FLrtd * 0.7) _
-                And (Not TR1State Or TR1FLsp <= TR1FLrtd * 0.7) _
-                And (Not TR2State Or TR2FLsp <= TR2FLrtd * 0.7) _
-                And (Not TR3State Or TR3FLsp <= TR3FLrtd * 0.7) _
-                And (Not TR4State Or TR4FLsp <= TR4FLrtd * 0.7) _
-                And CWBypassValve <= 30 Then
+            ' 冷水バイパス弁開度確認
+            If CWBypassValve <= 30 Then
                 Application.Exit()
             End If
 
         End If
+
 
     End Sub
 
@@ -915,5 +1006,40 @@ Public Class ChlrTrnsOpCtrlMain
 
         RichTextBoxConsole.ScrollToCaret()
     End Sub
+
+    Public Function CheckStability(RecentFL As Double) As Boolean
+
+        Dim now As DateTime = DateTime.Now
+
+        ' 今回の値を履歴に追加
+        history.Add((now, RecentFL))
+
+        ' 過去30秒より古い履歴を削除
+        history.RemoveAll(Function(h) (now - h.Timestamp).TotalSeconds > WindowSeconds)
+
+        ' 履歴が1件（今回分）しかない場合は判定不能としてFalse
+        If history.Count <= 1 Then
+            Return False
+        End If
+
+        ' 直近30秒間の最大値・最小値を取得
+        Dim maxVal As Double = history.Max(Function(h) h.Value)
+        Dim minVal As Double = history.Min(Function(h) h.Value)
+
+        ' 基準値は (最大値 + 最小値) / 2
+        Dim baseValue As Double = (maxVal + minVal) / 2.0
+
+        If baseValue = 0 Then
+            ' ゼロ割防止：基準値が0なら差の絶対値で判定
+            Return (maxVal - minVal) = 0
+        End If
+
+        Dim upperLimit As Double = baseValue * (1.0 + TolerancePercent)
+        Dim lowerLimit As Double = baseValue * (1.0 - TolerancePercent)
+
+        ' 直近30秒間の全ての値が ±2% の範囲内に収まっているか判定
+        Return (maxVal <= upperLimit) AndAlso (minVal >= lowerLimit)
+
+    End Function
 
 End Class
